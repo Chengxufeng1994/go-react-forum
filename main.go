@@ -15,7 +15,7 @@ func main() {
 	password := config.GetConfig().GetString("mysql.password")
 	host := config.GetConfig().GetString("mysql.host")
 	port := config.GetConfig().GetString("mysql.port")
-	dbname := config.GetConfig().GetString("mysql.database-name")
+	dbname := config.GetConfig().GetString("mysql.dbname")
 	database.Init(username, password, host, port, dbname)
 
 	router := router.Init()
