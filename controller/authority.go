@@ -4,6 +4,7 @@ import (
 	"github.com/Chengxufeng1994/go-react-forum/dao"
 	"github.com/Chengxufeng1994/go-react-forum/model"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
 )
@@ -26,10 +27,14 @@ func (ac AuthorityController) Register(c *gin.Context) {
 		return
 	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(json["password"]), bcrypt.DefaultCost)
+	if err != nil {
+		return
+	}
 	user := &model.User{}
 	user.Username = json["username"]
 	user.Email = json["email"]
-	user.Password = json["password"]
+	user.Password = string(hash)
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
@@ -83,7 +88,8 @@ func (ac AuthorityController) Login(c *gin.Context) {
 		return
 	}
 
-	if user.Password != loginRequest.Password {
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
+	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Login Failed",
 			"result":  "Password wrong",
