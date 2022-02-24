@@ -2,6 +2,7 @@ CREATE DATABASE IF NOT EXISTS go_react_forum DEFAULT CHARACTER SET utf8 COLLATE 
 
 USE `go_react_forum`;
 
+DROP TABLE IF EXISTS themes;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS users;
 
@@ -23,3 +24,12 @@ CREATE TABLE IF NOT EXISTS sessions
     user_id    INT          NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
+
+CREATE TABLE IF NOT EXISTS themes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(100) NOT NULL,
+    description VARCHAR(100) NOT NULL,
+    created_at datetime NOT NULL,
+    updated_at datetime NOT NULL,
+    user_id
+)
