@@ -1,7 +1,7 @@
 package model
 
 type Session struct {
-	ID     string
-	UUID   string
-	UserID string
+	SessionID string
+	UserID    int
+	Username  string
 }

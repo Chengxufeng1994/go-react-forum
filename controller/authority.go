@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/Chengxufeng1994/go-react-forum/dao"
 	"github.com/Chengxufeng1994/go-react-forum/model"
+	"github.com/Chengxufeng1994/go-react-forum/util"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -97,15 +98,29 @@ func (ac AuthorityController) Login(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("user", string(rune(user.ID)), 60*60, "/", "localhost", false, true)
+	sess := &model.Session{}
+	uuid := util.CreateUUID()
+	sess.SessionID = uuid
+	sess.Username = user.Username
+	sess.UserID = user.ID
+	err = dao.CreateSession(sess)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Login Failed",
+			"result":  "Create session failed",
+		})
+	}
+	c.SetCookie("user", uuid, 60*60, "/", "localhost", false, true)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login Successfully",
 	})
 }
 
 func (ac AuthorityController) Logout(c *gin.Context) {
-	cookie, _ := c.Cookie("user")
-	if cookie != "" {
+	uuid, _ := c.Cookie("user")
+	if uuid != "" {
+		dao.DeleteSession(uuid)
 		c.SetCookie("user", "", -1, "/", "localhost", false, true)
 	}
 
