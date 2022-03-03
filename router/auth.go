@@ -9,7 +9,7 @@ type AuthRouter struct {
 }
 
 func (ar AuthRouter) InitAuthRouter(routerGroup *gin.RouterGroup) {
-	authGroup := routerGroup.Group("/auth.go")
+	authGroup := routerGroup.Group("/auth")
 	authController := new(controller.AuthController)
 	{
 		authGroup.POST("/register", authController.Register)
