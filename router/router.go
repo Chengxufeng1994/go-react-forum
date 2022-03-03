@@ -14,14 +14,14 @@ func Init() *gin.Engine {
 	// Health Check
 	router.GET("/health", health.Status)
 
-	authorityRouter := new(AuthorityRouter)
+	authRouter := new(AuthRouter)
+	userRouter := new(UserRouter)
 
-	apiGroup := router.Group("api")
-	publicGroup := apiGroup.Group("")
+	v1 := router.Group("/api/v1")
 	{
-		authorityRouter.InitAuthorityRouter(publicGroup)
+		authRouter.InitAuthRouter(v1)
+		userRouter.InitUserRouter(v1)
 	}
-	// privateGroup := apiGroup.Group("")
 
 	return router
 }

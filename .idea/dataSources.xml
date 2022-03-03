@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="go_react_forum@localhost" uuid="c80aa9c4-246b-4553-817b-0e98cfc1fab2">
+    <data-source source="LOCAL" name="go_react_forum@localhost" uuid="cccb6d66-5509-4ba5-8a7d-65c5455c3745">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
