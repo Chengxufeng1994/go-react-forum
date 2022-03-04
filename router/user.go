@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/Chengxufeng1994/go-react-forum/controller"
+	"github.com/Chengxufeng1994/go-react-forum/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,6 @@ func (ur UserRouter) InitUserRouter(routerGroup *gin.RouterGroup) {
 		userGroup.POST("/", userController.CreateUser)
 		userGroup.GET("/:id", userController.GetUser)
 		userGroup.PUT("/:id", userController.UpdateUser)
-		userGroup.DELETE("/:id", userController.DeleteUser)
+		userGroup.DELETE("/:id", middlewares.AuthMiddleware(), userController.DeleteUser)
 	}
 }
