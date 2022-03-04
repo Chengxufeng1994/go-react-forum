@@ -1,9 +1,11 @@
 package model
 
 import (
+	"errors"
 	"github.com/Chengxufeng1994/go-react-forum/util"
 	"gorm.io/gorm"
 	"html"
+	"net/mail"
 	"strings"
 	"time"
 )
@@ -84,4 +86,48 @@ func (u *User) DeleteUser(db *gorm.DB, uid uint32) (int64, error) {
 	}
 
 	return db.RowsAffected, nil
+}
+
+func (u *User) Validate(action string) map[string]string {
+	var errorMessages = make(map[string]string)
+	var err error
+	switch strings.ToLower(action) {
+	case "update":
+		if u.Email == "" {
+			err = errors.New("required email")
+			errorMessages["Required_email"] = err.Error()
+		}
+		if u.Email != "" {
+			if _, err = mail.ParseAddress(u.Email); err != nil {
+				err = errors.New("invalid email")
+				errorMessages["Invalid_email"] = err.Error()
+			}
+		}
+	default:
+		if u.Username == "" {
+			err = errors.New("required username")
+			errorMessages["Required_username"] = err.Error()
+		}
+		if u.Password == "" {
+			err = errors.New("required password")
+			errorMessages["Required_password"] = err.Error()
+		}
+		if u.Password != "" && len(u.Password) < 6 {
+			err = errors.New("password should be atleast 6 characters")
+			errorMessages["Invalid_password"] = err.Error()
+		}
+		if u.Email == "" {
+			err = errors.New("required email")
+			errorMessages["Required_email"] = err.Error()
+		}
+		if u.Email != "" {
+			if _, err = mail.ParseAddress(u.Email); err != nil {
+				err = errors.New("invalid email")
+				errorMessages["Invalid_email"] = err.Error()
+			}
+		}
+
+	}
+
+	return errorMessages
 }

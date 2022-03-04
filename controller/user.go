@@ -38,6 +38,17 @@ func (uc UserController) CreateUser(c *gin.Context) {
 		})
 		return
 	}
+
+	user.Prepare()
+	errorMessages := user.Validate("")
+	if len(errorMessages) > 0 {
+		errList = errorMessages
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  errList,
+		})
+		return
+	}
 	err = user.BeforeSave()
 	if err != nil {
 		errList["Before_save"] = "Hash password error"
@@ -47,7 +58,6 @@ func (uc UserController) CreateUser(c *gin.Context) {
 		})
 		return
 	}
-	user.Prepare()
 	userCreated, err := user.SaveUser(global.GRF_DB)
 	if err != nil {
 		errList["Unmarshal_error"] = err.Error()
@@ -186,6 +196,7 @@ func (uc UserController) UpdateUser(c *gin.Context) {
 	updatedUser.Username = formerUser.Username
 	updatedUser.Email = requestBody["email"]
 	updatedUser.Prepare()
+	updatedUser.Validate("update")
 	_, err = updatedUser.UpdateUser(global.GRF_DB, uint32(iUserId))
 	if err != nil {
 		formattedError := util.FormatError(err.Error())
