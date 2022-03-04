@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"github.com/Chengxufeng1994/go-react-forum/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -22,4 +23,13 @@ func Init(user, pwd, host, port, dbname string) *gorm.DB {
 
 func GetDB() *gorm.DB {
 	return db
+}
+
+func RegisterTables(db *gorm.DB) {
+	err := db.Debug().AutoMigrate(&model.User{})
+	if err != nil {
+		panic(fmt.Errorf("register table failed: %#v", err))
+	}
+
+	fmt.Println("register table success")
 }

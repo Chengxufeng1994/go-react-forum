@@ -7,7 +7,7 @@ import (
 
 var config *viper.Viper
 
-func Init(configName string) {
+func Init(configName string) *viper.Viper {
 	var err error
 
 	config = viper.New()
@@ -19,6 +19,9 @@ func Init(configName string) {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
+	config.WatchConfig()
+
+	return config
 }
 
 func GetConfig() *viper.Viper {

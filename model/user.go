@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/Chengxufeng1994/go-react-forum/database"
 	"github.com/Chengxufeng1994/go-react-forum/util"
+	"gorm.io/gorm"
 	"html"
 	"strings"
 	"time"
@@ -13,8 +13,8 @@ type User struct {
 	Username  string    `gorm:"size:255;not null;unique" json:"username"`
 	Email     string    `gorm:"size:100;not null;unique" json:"email"`
 	Password  string    `gorm:"size:100;not null" json:"password"`
-	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	CreatedAt time.Time `gorm:"" json:"created_at"`
+	UpdatedAt time.Time `gorm:"" json:"updated_at"`
 }
 
 func (u *User) BeforeSave() error {
@@ -34,8 +34,7 @@ func (u *User) Prepare() {
 	u.UpdatedAt = time.Now()
 }
 
-func (u *User) SaveUser() (*User, error) {
-	db := database.GetDB()
+func (u *User) SaveUser(db *gorm.DB) (*User, error) {
 	result := db.Create(&u)
 	if result.Error != nil {
 		return &User{}, result.Error
@@ -44,8 +43,7 @@ func (u *User) SaveUser() (*User, error) {
 	return u, nil
 }
 
-func (u *User) FindUserById(uid uint32) (*User, error) {
-	db := database.GetDB()
+func (u *User) FindUserById(db *gorm.DB, uid uint32) (*User, error) {
 	result := db.Debug().Model(User{}).Where("id = ?", uid).Take(&u)
 	if result.Error != nil {
 		return &User{}, result.Error
@@ -54,8 +52,7 @@ func (u *User) FindUserById(uid uint32) (*User, error) {
 	return u, nil
 }
 
-func (u *User) DeleteUser(uid uint32) (int64, error) {
-	db := database.GetDB()
+func (u *User) DeleteUser(db *gorm.DB, uid uint32) (int64, error) {
 	result := db.Debug().Model(User{}).Where("id = ?", uid).Take(&User{}).Delete(&User{})
 	if result.Error != nil {
 		return -1, result.Error
