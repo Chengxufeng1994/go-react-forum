@@ -1,130 +1,142 @@
 package controller
 
+import "C"
 import (
-	"github.com/Chengxufeng1994/go-react-forum/dao"
+	"encoding/json"
+	"fmt"
+	"github.com/Chengxufeng1994/go-react-forum/auth"
+	"github.com/Chengxufeng1994/go-react-forum/global"
 	"github.com/Chengxufeng1994/go-react-forum/model"
 	"github.com/Chengxufeng1994/go-react-forum/util"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
+	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 type LoginRequest struct {
-	Email    string
-	Password string
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type AuthController struct{}
 
 func (ac AuthController) Register(c *gin.Context) {
-	json := map[string]string{}
-	err := c.BindJSON(&json)
+	var err error
+	var errList = make(map[string]interface{})
+	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "Register Failed",
-			"result":  err.Error(),
+		errList["Invalid_body"] = "Unable to get request"
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  errList,
 		})
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(json["password"]), bcrypt.DefaultCost)
+	user := model.User{}
+	err = json.Unmarshal(body, &user)
 	if err != nil {
+		errList["Unmarshal_error"] = "Cannot unmarshal body"
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  errList,
+		})
 		return
 	}
-	user := &model.User{}
-	user.Username = json["username"]
-	user.Email = json["email"]
-	user.Password = string(hash)
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
 
-	err = dao.Register(user)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "Register Failed",
-			"result":  err.Error(),
+	user.Prepare()
+	errorMessages := user.Validate("")
+	if len(errorMessages) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": http.StatusBadRequest,
+			"error":  errList,
 		})
-		return
-	} else {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Register Successfully",
+	}
+
+	err = user.BeforeSave()
+	if err != nil {
+		errList["Before_save"] = "Hash password error"
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"statusCode": http.StatusUnprocessableEntity,
+			"error":      errList,
 		})
 		return
 	}
+	userCreated, err := user.SaveUser(global.GRF_DB)
+	if err != nil {
+		errList["Unmarshal_error"] = err.Error()
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"statusCode": http.StatusUnprocessableEntity,
+			"error":      errList,
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"statusCode": http.StatusCreated,
+		"response":   userCreated,
+	})
 }
 
 func (ac AuthController) Login(c *gin.Context) {
 	var loginRequest LoginRequest
-	err := c.BindJSON(&loginRequest)
+	var err error
+	// var errList = make(map[string]interface{})
+	err = c.BindJSON(&loginRequest)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Login Failed",
-			"result":  err.Error(),
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  "unable get request",
+		})
+	}
+
+	user := model.User{}
+	user.Email = loginRequest.Email
+	user.Password = loginRequest.Password
+	errorMessages := user.Validate("login")
+	if len(errorMessages) > 0 {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  errorMessages,
 		})
 		return
 	}
 
-	if loginRequest.Email == "" {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Login Failed",
-			"result":  "Email required",
+	loginUser := model.User{}
+	db := global.GRF_DB
+	result := db.Debug().Model(&model.User{}).Where("email = ?", loginRequest.Email).Take(&loginUser)
+	if result.Error != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  fmt.Sprintf("error at the getting the user: %#v", err.Error()),
 		})
-		return
-	}
-	if loginRequest.Password == "" {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Login Failed",
-			"result":  "Password required",
-		})
-		return
 	}
 
-	user := dao.FindUserByEmail(loginRequest.Email)
-	if user == nil {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Login Failed",
-			"result":  "User not found",
-		})
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
+	err = util.VerifyPwd(loginUser.Password, loginRequest.Password)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Login Failed",
-			"result":  "Password wrong",
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  fmt.Sprintf("error at the hashing the password: %#v", err.Error()),
+		})
+	}
+
+	token, err := auth.CreateToken(uint32(loginUser.ID))
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  fmt.Sprintf("error at the creating the token: %#v", err.Error()),
 		})
 		return
 	}
 
-	sess := &model.Session{}
-	uuid := util.CreateUUID()
-	sess.SessionID = uuid
-	sess.Username = user.Username
-	sess.UserID = user.ID
-	err = dao.CreateSession(sess)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Login Failed",
-			"result":  "Create session failed",
-		})
-	}
-	c.SetCookie("user", uuid, 60*60, "/", "localhost", false, true)
+	var userData = make(map[string]interface{})
+	userData["id"] = loginUser.ID
+	userData["username"] = loginUser.Username
+	userData["email"] = loginUser.Email
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Login Successfully",
-	})
-}
-
-func (ac AuthController) Logout(c *gin.Context) {
-	uuid, _ := c.Cookie("user")
-	if uuid != "" {
-		dao.DeleteSession(uuid)
-		c.SetCookie("user", "", -1, "/", "localhost", false, true)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Logout Successfully",
+		"status": http.StatusOK,
+		"user":   userData,
+		"token":  token,
 	})
 }

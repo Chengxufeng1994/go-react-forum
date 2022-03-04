@@ -4,4 +4,5 @@ type Session struct {
 	SessionID string
 	UserID    int
 	Username  string
+	Token     string
 }

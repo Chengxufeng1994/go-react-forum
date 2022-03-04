@@ -14,7 +14,6 @@ func (ar AuthRouter) InitAuthRouter(routerGroup *gin.RouterGroup) {
 	{
 		authGroup.POST("/register", authController.Register)
 		authGroup.POST("/login", authController.Login)
-		authGroup.POST("/logout", authController.Logout)
 	}
 
 }

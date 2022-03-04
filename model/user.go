@@ -103,6 +103,15 @@ func (u *User) Validate(action string) map[string]string {
 				errorMessages["Invalid_email"] = err.Error()
 			}
 		}
+	case "login":
+		if u.Email == "" {
+			err = errors.New("required email")
+			errorMessages["Required_email"] = err.Error()
+		}
+		if u.Password == "" {
+			err = errors.New("required password")
+			errorMessages["Required_password"] = err.Error()
+		}
 	default:
 		if u.Username == "" {
 			err = errors.New("required username")
