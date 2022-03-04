@@ -2,9 +2,12 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Chengxufeng1994/go-react-forum/global"
 	"github.com/Chengxufeng1994/go-react-forum/model"
+	"github.com/Chengxufeng1994/go-react-forum/util"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -29,6 +32,15 @@ func (uc UserController) CreateUser(c *gin.Context) {
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		errList["Unmarshal_error"] = "Cannot unmarshal body"
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"statusCode": http.StatusUnprocessableEntity,
+			"error":      errList,
+		})
+		return
+	}
+	err = user.BeforeSave()
+	if err != nil {
+		errList["Before_save"] = "Hash password error"
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"statusCode": http.StatusUnprocessableEntity,
 			"error":      errList,
@@ -93,7 +105,7 @@ func (uc UserController) UpdateUser(c *gin.Context) {
 		})
 		return
 	}
-	// Start processing the request
+
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errList["Invalid_body"] = "Unable to get request"
@@ -127,6 +139,68 @@ func (uc UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("requestBody: ", requestBody)
+	updatedUser := model.User{}
+	if requestBody["current_password"] == "" && requestBody["new_password"] != "" {
+		errList["Empty_current"] = "Please Provide current password"
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  errList,
+		})
+		return
+	}
+	if requestBody["current_password"] != "" && requestBody["new_password"] == "" {
+		errList["Empty_new"] = "Please Provide new password"
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": http.StatusUnprocessableEntity,
+			"error":  errList,
+		})
+		return
+	}
+	if requestBody["current_password"] != "" && requestBody["new_password"] != "" {
+		// also check if the new password
+		if len(requestBody["new_password"]) < 6 {
+			errList["Invalid_password"] = "Password should be atleast 6 characters"
+			c.JSON(http.StatusUnprocessableEntity, gin.H{
+				"status": http.StatusUnprocessableEntity,
+				"error":  errList,
+			})
+			return
+		}
+		// if they do, check that the former password is correct
+		err = util.VerifyPwd(formerUser.Password, requestBody["current_password"])
+		if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
+			errList["Password_mismatch"] = "The password not correct"
+			c.JSON(http.StatusUnprocessableEntity, gin.H{
+				"status": http.StatusUnprocessableEntity,
+				"error":  errList,
+			})
+			return
+		}
+		// update both the password and the email
+		updatedUser.Username = formerUser.Username // remember, you cannot update the username
+		updatedUser.Email = requestBody["email"]
+		updatedUser.Password = requestBody["new_password"]
+	}
+
+	updatedUser.Username = formerUser.Username
+	updatedUser.Email = requestBody["email"]
+	updatedUser.Prepare()
+	_, err = updatedUser.UpdateUser(global.GRF_DB, uint32(iUserId))
+	if err != nil {
+		formattedError := util.FormatError(err.Error())
+		errList = formattedError
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": http.StatusInternalServerError,
+			"error":  errList,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":   http.StatusOK,
+		"response": updatedUser,
+	})
 }
 
 func (uc UserController) DeleteUser(c *gin.Context) {

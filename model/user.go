@@ -13,8 +13,8 @@ type User struct {
 	Username  string    `gorm:"size:255;not null;unique" json:"username"`
 	Email     string    `gorm:"size:100;not null;unique" json:"email"`
 	Password  string    `gorm:"size:100;not null" json:"password"`
-	CreatedAt time.Time `gorm:"" json:"created_at"`
-	UpdatedAt time.Time `gorm:"" json:"updated_at"`
+	CreatedAt time.Time `gorm:"datetime;default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt time.Time `gorm:"datetime;default:CURRENT_TIMESTAMP" json:"updated_at"`
 }
 
 func (u *User) BeforeSave() error {
@@ -44,7 +44,7 @@ func (u *User) SaveUser(db *gorm.DB) (*User, error) {
 }
 
 func (u *User) FindUserById(db *gorm.DB, uid uint32) (*User, error) {
-	result := db.Debug().Model(User{}).Where("id = ?", uid).Take(&u)
+	result := db.Debug().Model(&User{}).Where("id = ?", uid).Take(&u)
 	if result.Error != nil {
 		return &User{}, result.Error
 	}
@@ -52,8 +52,33 @@ func (u *User) FindUserById(db *gorm.DB, uid uint32) (*User, error) {
 	return u, nil
 }
 
+func (u *User) UpdateUser(db *gorm.DB, uid uint32) (*User, error) {
+	updates := make(map[string]interface{})
+	if u.Password != "" {
+		err := u.BeforeSave()
+		if err != nil {
+			panic(err)
+		}
+		updates["password"] = u.Password
+	}
+	updates["email"] = u.Email
+	updates["updated_at"] = time.Now()
+
+	result := db.Debug().Model(&User{}).Where("id = ?", uid).Take(&User{}).Updates(updates)
+	if result.Error != nil {
+		return &User{}, result.Error
+	}
+
+	result2 := db.Debug().Model(&User{}).Where("id = ?", uid).Take(&u)
+	if result2.Error != nil {
+		return &User{}, result.Error
+	}
+
+	return u, nil
+}
+
 func (u *User) DeleteUser(db *gorm.DB, uid uint32) (int64, error) {
-	result := db.Debug().Model(User{}).Where("id = ?", uid).Take(&User{}).Delete(&User{})
+	result := db.Debug().Model(&User{}).Where("id = ?", uid).Take(&User{}).Delete(&User{})
 	if result.Error != nil {
 		return -1, result.Error
 	}
