@@ -108,8 +108,9 @@ func (ac AuthController) Login(c *gin.Context) {
 	if result.Error != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": http.StatusUnprocessableEntity,
-			"error":  fmt.Sprintf("error at the getting the user: %#v", err.Error()),
+			"error":  fmt.Sprintf("error at the getting the user: %#v", result.Error.Error()),
 		})
+		return
 	}
 
 	err = util.VerifyPwd(loginUser.Password, loginRequest.Password)
@@ -118,6 +119,7 @@ func (ac AuthController) Login(c *gin.Context) {
 			"status": http.StatusUnprocessableEntity,
 			"error":  fmt.Sprintf("error at the hashing the password: %#v", err.Error()),
 		})
+		return
 	}
 
 	token, err := auth.CreateToken(uint32(loginUser.ID))
