@@ -26,7 +26,10 @@ func GetDB() *gorm.DB {
 }
 
 func RegisterTables(db *gorm.DB) {
-	err := db.Debug().AutoMigrate(&model.User{})
+	err := db.Debug().AutoMigrate(
+		&model.User{},
+		&model.Post{},
+	)
 	if err != nil {
 		panic(fmt.Errorf("register table failed: %#v", err))
 	}

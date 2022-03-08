@@ -16,11 +16,13 @@ func Init() *gin.Engine {
 
 	authRouter := new(AuthRouter)
 	userRouter := new(UserRouter)
+	postRouter := new(PostRouter)
 
 	v1 := router.Group("/api/v1")
 	{
 		authRouter.InitAuthRouter(v1)
 		userRouter.InitUserRouter(v1)
+		postRouter.InitPostRouter(v1)
 	}
 
 	return router
