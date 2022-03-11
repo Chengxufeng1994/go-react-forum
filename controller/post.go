@@ -78,6 +78,24 @@ func (pc PostController) CreatePost(c *gin.Context) {
 	})
 }
 
-func (pc PostController) GetPosts(c *gin.Context) {}
+func (pc PostController) GetPosts(c *gin.Context) {
+	errList := map[string]string{}
+	post := &model.Post{}
+	posts, err := post.FindAllPosts(global.GRF_DB)
+	if err != nil {
+		errList["No_post"] = "No Post Found"
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": http.StatusNotFound,
+			"error":  errList,
+		})
+		return
+	}
 
-func (pc PostController) GetPost(c *gin.Context) {}
+	c.JSON(http.StatusOK, gin.H{
+		"status":   http.StatusCreated,
+		"response": posts,
+	})
+}
+
+func (pc PostController) GetPost(c *gin.Context) {
+}

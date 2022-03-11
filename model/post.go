@@ -39,3 +39,24 @@ func (p *Post) SavePost(db *gorm.DB) (*Post, error) {
 
 	return p, nil
 }
+
+func (p *Post) FindAllPosts(db *gorm.DB) (*[]Post, error) {
+	posts := []Post{}
+	result := db.Debug().Model(&Post{}).Limit(100).Order("created_at, desc").Find(posts)
+	if result.Error != nil {
+		return &[]Post{}, result.Error
+	}
+	if len(posts) > 0 {
+		for _, post := range posts {
+			result = db.Debug().Model(&User{}).Select("id, username, email, created_at, updated_at").Where("id = ?", post.AuthorID).Take(&post.Author)
+			if result.Error != nil {
+				return &[]Post{}, result.Error
+			}
+		}
+	}
+	return &posts, nil
+}
+
+//func (p *Post) FindPostById(db *gorm.DB) (*Post, error) {
+//
+//}

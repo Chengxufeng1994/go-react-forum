@@ -14,7 +14,7 @@ func (pr *PostRouter) InitPostRouter(routerGroup *gin.RouterGroup) {
 	postGroup := routerGroup.Group("/posts")
 	{
 		postGroup.POST("/", middlewares.AuthMiddleware(), postController.CreatePost)
-		postGroup.GET("/", postController.GetPosts)
+		postGroup.GET("/all", postController.GetPosts)
 		postGroup.GET("/:id", postController.GetPost)
 	}
 }
